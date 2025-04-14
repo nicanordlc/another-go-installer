@@ -19,7 +19,7 @@ OS_NAME=$(uname -s | tr "[:upper:]" "[:lower:]")
 OS_ARCH=$(
     if [ "$(uname -m)" = "x86_64" ]; then
         echo "amd64"
-    elif [ "$(uname -m)" = "x86_64" ]; then
+    elif [ "$(uname -m)" = "arm64" ]; then
         echo "arm64"
     else
         echo "386"
@@ -32,7 +32,7 @@ DOWNLOAD_PAGE="https://golang.org/dl/"
 SHELL_PROFILE="${HOME}/.$(basename "$SHELL")rc"
 
 ENV_VARS=$(
-cat <<EOF
+    cat <<EOF
 # GoLang
 export GOROOT="$GOROOT"
 export GOPATH="$GOPATH"
@@ -40,14 +40,14 @@ export PATH="\$PATH:$GOROOT/bin:$GOPATH/bin"
 EOF
 )
 
-__show_help(){
-local NAME BOLD NORMAL
+__show_help() {
+    local NAME BOLD NORMAL
 
-NAME="another-go-installer"
-BOLD=$(tput bold)
-NORMAL=$(tput sgr0)
+    NAME="another-go-installer"
+    BOLD=$(tput bold)
+    NORMAL=$(tput sgr0)
 
-cat <<EOF
+    cat <<EOF
 ${BOLD}NAME${NORMAL}
     $NAME - Installs the latest version of GoLang and create a workspace
 
@@ -68,11 +68,11 @@ ${BOLD}SEE ALSO${NORMAL}
 EOF
 }
 
-__sanitize(){
+__sanitize() {
     sed -E 's:([$\/]):\\\1:g' <<<"$1"
 }
 
-__remove_env_vars(){
+__remove_env_vars() {
     local LINE FILE SANITIZED_LINE MATCH
     FILE=$1
 
@@ -95,18 +95,18 @@ __remove_env_vars(){
 
         # For mac issues ¯\\_(ツ)_/¯
         case "$OS_NAME" in
-            linux)
-                sed -i -E "/^($SANITIZED_LINE)$/d" "$FILE"
-                ;;
-            darwin)
-                sed -i '' -E "/^($SANITIZED_LINE)$/d" "$FILE"
-                ;;
-            *) echo "Script not supported for OS: $OS_NAME"
+        linux)
+            sed -i -E "/^($SANITIZED_LINE)$/d" "$FILE"
+            ;;
+        darwin)
+            sed -i '' -E "/^($SANITIZED_LINE)$/d" "$FILE"
+            ;;
+        *) echo "Script not supported for OS: $OS_NAME" ;;
         esac
     done <<<"$ENV_VARS"
 }
 
-__validate_checksum(){
+__validate_checksum() {
     local TO_DOWNLOAD DOWNLOADED LOCAL_SHA_CHECKSUM \
         REMOTE_SHA_CHECKSUM GO_VERSION_DL_LINE
 
@@ -114,7 +114,7 @@ __validate_checksum(){
     DOWNLOADED=$2
 
     GO_VERSION_DL_LINE=$(
-        nl -ba < "$GOLANG_ORG_DOWNLOAD_PAGE" |
+        nl -ba <"$GOLANG_ORG_DOWNLOAD_PAGE" |
             grep -E "$TO_DOWNLOAD" |
             tail -1 |
             awk '{print $1}'
@@ -122,9 +122,9 @@ __validate_checksum(){
 
     REMOTE_SHA_CHECKSUM=$(
         awk "NR > $GO_VERSION_DL_LINE && NR < $((GO_VERSION_DL_LINE + 9)) \
-            {print}" < "$GOLANG_ORG_DOWNLOAD_PAGE" |
-                grep -E '<tt>' |
-                sed -E 's:.*<tt>(.*)</tt>.*:\1:'
+            {print}" <"$GOLANG_ORG_DOWNLOAD_PAGE" |
+            grep -E '<tt>' |
+            sed -E 's:.*<tt>(.*)</tt>.*:\1:'
     )
 
     LOCAL_SHA_CHECKSUM=$(openssl dgst -sha256 "$DOWNLOADED" | cut -d' ' -f2)
@@ -137,7 +137,7 @@ __validate_checksum(){
     fi
 }
 
-__uninstall(){
+__uninstall() {
     if ! [ -d "$GOROOT" ]; then
         echo "Golang not installed..."
         exit 0
@@ -150,7 +150,7 @@ __uninstall(){
     echo "Go uninstalled."
 }
 
-__get_all_versions(){
+__get_all_versions() {
     local SED_FIND SED_REPLACE
     SED_FIND='^.*href=".*\/go([0-9](\.[0-9]+)+).*$'
     SED_REPLACE="${DOWNLOAD_PAGE%/*}"
@@ -162,7 +162,7 @@ __get_all_versions(){
         uniq
 }
 
-__validate_version(){
+__validate_version() {
     local VERSION
     VERSION=$1
 
@@ -173,7 +173,7 @@ __validate_version(){
     ALL_VERSIONS=$(__get_all_versions | cut -d' ' -f2)
     FOUND_VERSION=$(grep -E "^$VERSION$" <<<"$ALL_VERSIONS" | head -1)
 
-    if [ -z "$FOUND_VERSION" ] ; then
+    if [ -z "$FOUND_VERSION" ]; then
         exec 3>&1 1>&2
         echo "Version $VERSION not found..."
         echo
@@ -188,15 +188,15 @@ __validate_version(){
     fi
 }
 
-__create_workspace(){
+__create_workspace() {
     # Create GoLang workspace
     if ! [ -d "$GOPATH" ]; then
-      echo "Creating workspace"
-      mkdir -vp "$GOPATH"/{bin,src,pkg}
+        echo "Creating workspace"
+        mkdir -vp "$GOPATH"/{bin,src,pkg}
     fi
 }
 
-__install(){
+__install() {
     if [ -d "$GOROOT" ]; then
         echo "You have GoLang already installed m8... ¯\\_(ツ)_/¯" 1>&2
         exit 1
@@ -209,7 +209,7 @@ __install(){
         FILE_TO_DOWNLOAD \
         USER_INPUT_VERSION \
         VERSION
-    curl -sL "$DOWNLOAD_PAGE" > "$GOLANG_ORG_DOWNLOAD_PAGE"
+    curl -sL "$DOWNLOAD_PAGE" >"$GOLANG_ORG_DOWNLOAD_PAGE"
 
     VERSION=$1
     USER_INPUT_VERSION=$(__validate_version "$VERSION") || exit 1
@@ -233,7 +233,7 @@ __install(){
     FILE_TO_DOWNLOAD="go${DOWNLOAD_VERSION}.${SYSTEM}.tar.gz"
 
     echo -en "Downloading Golang ${DOWNLOAD_VERSION}\n... "
-    if curl -sL "${ENDPOINT}/${FILE_TO_DOWNLOAD}" > "$DOWNLOADED_FILE"; then
+    if curl -sL "${ENDPOINT}/${FILE_TO_DOWNLOAD}" >"$DOWNLOADED_FILE"; then
         echo -e "\nFinished."
     else
         echo -e "\n\nSomething happened while downloading! Try later." 1>&2
@@ -241,7 +241,7 @@ __install(){
     fi
 
     # Checks if openssl is available on the system for checksum validation
-    if command -v openssl &> /dev/null; then
+    if command -v openssl &>/dev/null; then
         echo "Validating checksum..."
         __validate_checksum "$FILE_TO_DOWNLOAD" "$DOWNLOADED_FILE"
     else
@@ -250,8 +250,8 @@ __install(){
     fi
 
     echo "Extracting file... "
-    tar -xzf "$DOWNLOADED_FILE" -C $EXTRACTED_GO_TAR
-    mv -f $EXTRACTED_GO_TAR/go "$GOROOT"
+    tar -xzf "$DOWNLOADED_FILE" -C "$EXTRACTED_GO_TAR"
+    mv -f "$EXTRACTED_GO_TAR/go" "$GOROOT"
 
     __create_workspace
 
@@ -266,19 +266,19 @@ __install(){
     echo -e "\nGolang version ${DOWNLOAD_VERSION} was installed. Restart your terminal to see changes."
 }
 
-goInstall(){
+goInstall() {
     local MAPPER
 
     while getopts ":i:rhq" OPT; do
         case $OPT in
-            h) MAPPER="__show_help" ;;
-            i) MAPPER="__install $OPTARG" ;;
-            r) MAPPER="__uninstall" ;;
-            q) QUIET="yup" ;;
-            \?)
-                echo "Invalid option (-$OPTARG)"
-                exit 1
-                ;;
+        h) MAPPER="__show_help" ;;
+        i) MAPPER="__install $OPTARG" ;;
+        r) MAPPER="__uninstall" ;;
+        q) QUIET="yup" ;;
+        \?)
+            echo "Invalid option (-$OPTARG)"
+            exit 1
+            ;;
         esac
     done
     shift $((OPTIND - 1))
@@ -288,7 +288,6 @@ goInstall(){
 
 # If this file is running in terminal call the function `goInstall`
 # Otherwise just source it
-if [ "$(basename "$0")" = "another-go-installer.sh" ]
-then
+if [ "$(basename "$0")" = "another-go-installer.sh" ]; then
     goInstall "${@}"
 fi
